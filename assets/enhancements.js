@@ -91,9 +91,24 @@ const charts={
 function drawChart(){
  const data=charts[document.body.dataset.project],target=document.querySelector('[data-chart]');
  if(!data||!target)return;
- target.innerHTML='<h3>'+htmlEscape(data.title)+'</h3><div class="data-bars"></div><p class="data-note">'+htmlEscape(data.note)+'</p>';
- const bars=target.querySelector('.data-bars');
- for(let i=0;i<data.values.length;i++){const [label,value]=data.values[i];const item=document.createElement('div');item.innerHTML='<div class="data-bar-label"><span>'+htmlEscape(label)+'</span><span>'+value+htmlEscape(data.unit)+'</span></div><div class="bar-track"><div class="bar-fill '+(i%2?'alt':'')+'" style="width:'+Math.min(100,Math.max(0,value/data.max*100))+'%"></div></div>';bars.appendChild(item)}
+ target.innerHTML='<h3>'+htmlEscape(data.title)+'</h3><div class="project-tabs" role="group" aria-label="Comparison chart display"><button type="button" class="project-tab" data-mode="absolute" aria-pressed="true">Source values</button><button type="button" class="project-tab" data-mode="normalized" aria-pressed="false">Relative bars</button></div><div class="data-bars" role="img" aria-label="'+htmlEscape(data.title)+'"></div><p class="data-note">'+htmlEscape(data.note)+'</p>';
+ const bars=target.querySelector('.data-bars'),tabs=[...target.querySelectorAll('[data-mode]')];
+ function render(mode){
+  tabs.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
+  bars.innerHTML='';
+  const maxObserved=Math.max(...data.values.map(x=>x[1]));
+  for(let i=0;i<data.values.length;i++){
+   const [label,value]=data.values[i],width=mode==='absolute'?value/data.max*100:value/maxObserved*100;
+   const item=document.createElement('div');item.innerHTML='<div class="data-bar-label"><span>'+htmlEscape(label)+'</span><span>'+value+htmlEscape(data.unit)+'</span></div><div class="bar-track"><div class="bar-fill '+(i%2?'alt':'')+'" style="width:'+Math.min(100,Math.max(0,width))+'%"></div></div>';
+   bars.appendChild(item)
+  }
+  const note=target.querySelector('[data-chart-mode-note]')||document.createElement('p');
+  note.dataset.chartModeNote='';note.className='data-note';
+  note.textContent=mode==='absolute'?'Scale displays values against the stated upper reference.':'Each bar is shown relative to the largest listed value; numerical labels are unchanged.';
+  if(!note.isConnected)bars.after(note)
+ }
+ tabs.forEach(b=>b.addEventListener('click',()=>render(b.dataset.mode)));
+ render('absolute')
 }
 function demo(){
  const target=document.querySelector('[data-demo]');if(!target)return;
